@@ -1,12 +1,22 @@
 <?php
+
+require_once 'db.php';
+require_once 'logic.php';
+
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if (isset($_GET['logout'])) {
+    logout();
 }
 
 if (empty($_SESSION['admin'])) {
     header("Location: auth.php");
     exit;
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -139,21 +149,28 @@ if (empty($_SESSION['admin'])) {
 <body>
     <div class="container">
         <h1>📚 TP PHP - Gestion des Étudiants BTS SIO</h1>
+        <div style="text-align: right; margin-bottom: 15px;">
+            <a href="?logout=1" class="btn-delete" style="text-decoration: none; display: inline-block;">Se déconnecter</a>
+        </div>
 
 <?php
-// Connexion à la base de données
-require_once 'db.php';
-
-// Importer la logique métier
-require_once 'logic.php';
 
 $isAdmin = isUserAdmin();
+$currentUserId = getCurrentUserId();
 
-//fecth student avec get
+//fecth student avec get (les conditions ici servent a proteger bien que les bouttons de modification ne soient affiché que pour les etudiants qui appartiennent a l'admin ou pour les admin, mais c'est une double verification pour eviter les failles de securite)
 $etudiant_a_modifier = null;
 if ($isAdmin && !empty($_GET['edit'])) {
     $id = intval($_GET['edit']);
     $etudiant_a_modifier = get_etudiants_by_id($id);
+} elseif (!$isAdmin && !empty($_GET['edit'])) {
+    $id = intval($_GET['edit']);
+    $etudiant_a_modifier = get_etudiants_by_id($id);
+    if (!$etudiant_a_modifier || (int) $etudiant_a_modifier['user_id'] !== $currentUserId) {
+        $_SESSION['message'] = "<div class='message error'>Accès refusé.</div>";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
 }
 
 // ========== TRAITEMENT DU FORMULAIRE ==========
@@ -162,20 +179,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     //modifier 
     if (isset($_POST['action']) && $_POST['action'] === 'modifier') {
-        if (!$isAdmin) {
-            $_SESSION['message'] = "<div class='message error'>Accès refusé.</div>";
-            header("Location: " . $_SERVER['PHP_SELF']);
-            exit;
-        }
         $id = intval($_POST['id']);
         $nom = $_POST['nom'];
         $prenom = $_POST['prenom'];
         $age = $_POST['age'];
         $classe = $_POST['classe'];
 
-        $erreurs = validerFormulaire($nom, $prenom, $age, $classe);
+        $erreurs = validerFormulaire($nom, $prenom, $age, $classe, $id);
         if (empty($erreurs)) {
-            if (update_student($id, $nom, $prenom, $age, $classe)) {
+            $updated = false;
+            if ($isAdmin) {
+                $updated = update_student($id, $nom, $prenom, $age, $classe);
+            } elseif ($currentUserId) {
+                $updated = update_student_for_user($id, $currentUserId, $nom, $prenom, $age, $classe);
+            }
+
+            if ($updated) {
                 $_SESSION['message'] = "<div class='message success'>Étudiant modifié avec succès !</div>";
             } else {
                 $_SESSION['message'] = "<div class='message error'>Erreur lors de la modification.</div>";
@@ -217,11 +236,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $prenom = $_POST['prenom'];
         $age = $_POST['age'];
         $classe = $_POST['classe'];
+        $userId = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
         
         $erreurs = validerFormulaire($nom, $prenom, $age, $classe);
+        if (!$userId) {
+            $erreurs[] = "Le contact sélectionné est invalide.";
+        }
         
         if (empty($erreurs)) {
-            add_students($nom, $prenom, $age, $classe);
+            add_students($nom, $prenom, $age, $classe, $userId);
             $_SESSION['message'] = "<div class='message success'>Étudiant ajouté avec succès !</div>";
             header("Location: " . $_SERVER['PHP_SELF']);
             exit;
@@ -246,6 +269,7 @@ echo $message;
 ?>
 
         <?php if ($isAdmin): ?>
+        <?php $orphanContacts = get_orphan_contacts(); ?>
         <!-- FORMULAIRE D'AJOUT -->
         <h2>Ajouter un Étudiant</h2>
         <form method="POST" action="">
@@ -265,12 +289,22 @@ echo $message;
                 <option value="BTS SIO SISR">BTS SIO SISR</option>
                 <option value="BTS SIO SLAM">BTS SIO SLAM</option>
             </select>
+
+            <label for="user_id">Lier au contact :</label>
+            <select id="user_id" name="user_id" required>
+                <option value="">-- Choisir --</option>
+                <?php foreach ($orphanContacts as $contact): ?>
+                    <option value="<?php echo (int) $contact['id']; ?>">
+                        <?php echo htmlspecialchars($contact['prenom'] . ' ' . $contact['nom'] . ' (' . $contact['email'] . ')'); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
             
             <button type="submit">Ajouter l'étudiant</button>
         </form>
         <?php endif; ?>
 
-        <?php if ($isAdmin): ?>
+        <?php if ($etudiant_a_modifier): ?>
         <dialog id="editDialog">
             <h2>Modifier un Étudiant</h2>
             <form method="POST" action="" id="editForm">
@@ -340,7 +374,7 @@ echo $message;
         
         ?>
     </div>
-    <?php if ($isAdmin): ?>
+    <?php if ($etudiant_a_modifier): ?>
     <script>
         const dialog = document.getElementById('editDialog');
         const cancelBtn = document.getElementById('cancelEdit');

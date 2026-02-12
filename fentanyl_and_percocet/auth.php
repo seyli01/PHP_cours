@@ -1,5 +1,7 @@
 <?php 
 
+require 'db.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -15,8 +17,6 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     } else {
         $email = trim($_POST["email"]);
         $user_password = trim($_POST["password"]);
-        
-        require 'db.php';
 
         $stmt = $conn->prepare("SELECT * FROM contact WHERE email = ?");
         $stmt->bind_param("s", $email);
