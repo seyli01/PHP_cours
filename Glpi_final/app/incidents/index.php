@@ -4,6 +4,8 @@ require_once '../../utils.php';
 require_once '../equipement/equipment.php';
 require_once 'incidents.php';
 
+safe_guarded_route();
+
 $user_info = who_am_i();
 $mes_equipements = get_equipements_by_user($mysqli, $user_info['id']);
 $techniciens = get_techniciens($mysqli);

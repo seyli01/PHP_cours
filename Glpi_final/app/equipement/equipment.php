@@ -1,7 +1,7 @@
 <?php
 
-require_once '../../db.php';
-require_once '../../utils.php';
+require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../utils.php';
 
 //fonction pour ajouter
 function handle_add_equipment($mysqli)
