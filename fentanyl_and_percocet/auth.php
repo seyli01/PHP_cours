@@ -1,47 +1,9 @@
-<?php 
 
+<?php
 require 'db.php';
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-//1ere etape verifier si le formulaire est soumis et recuprer les donnes du formulaire 
-//requete pour voir si le compte existe ou pas dans la base de donnee 
-//ensuite verifier si le mot de passe est correct ou pas 
-
-if($_SERVER["REQUEST_METHOD"] == "POST"){
-
-    if(empty($_POST["email"]) || empty($_POST["password"])){
-        echo "Veuillez remplir tous les champs.";
-    } else {
-        $email = trim($_POST["email"]);
-        $user_password = trim($_POST["password"]);
-
-        $stmt = $conn->prepare("SELECT * FROM contact WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if($result->num_rows > 0){
-            $user = $result->fetch_assoc();
-            if(password_verify($user_password, $user['password'])){
-                $_SESSION['admin'] = [
-                    'id' => $user['id'],
-                    'email' => $user['email'],
-                    'isAdmin' => isset($user['isAdmin']) ? (int) $user['isAdmin'] : 0
-                ];
-                header("Location: index.php");
-                exit;
-            } else {
-                echo "Mot de passe incorrect.";
-            }
-        } else {
-            echo "Aucun compte trouvé avec cet email.";
-        }
-    }
-}
-
+require_once 'logic.php';
+$error = null;
+handle_auth();
 ?>
 
 <!DOCTYPE html>
@@ -62,5 +24,6 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
         <button type="submit" name="login" >Se connecter</button>
     </form>
+    <?php if (!empty($error)) { echo '<p style="color:red;">' . htmlspecialchars($error) . '</p>'; } ?>
 </body>
 </html>

@@ -1,23 +1,27 @@
 <?php
 
 //verifie la condition dans le session pour etre admin
-function isUserAdmin() {
+function isUserAdmin()
+{
     return isset($_SESSION['admin']['isAdmin']) && (int) $_SESSION['admin']['isAdmin'] === 1;
 }
 
 //verifie la condition dans le session pour etre user
-function getCurrentUserId() {
+function getCurrentUserId()
+{
     return isset($_SESSION['admin']['id']) ? (int) $_SESSION['admin']['id'] : 0;
 }
 
-function add_students($nom, $prenom, $age, $classe, $userId) {
+function add_students($nom, $prenom, $age, $classe, $userId)
+{
     global $conn;
     $stmt = $conn->prepare("INSERT INTO etudiants (nom, prenom, age, classe, user_id) VALUES (?, ?, ?, ?, ?)");
     $stmt->bind_param("ssisi", $nom, $prenom, $age, $classe, $userId);
     return $stmt->execute();
 }
 
-function get_orphan_contacts() {
+function get_orphan_contacts()
+{
     global $conn;
     $sql = "SELECT c.id, c.nom, c.prenom, c.email
             FROM contact c
@@ -34,7 +38,8 @@ function get_orphan_contacts() {
     return $contacts;
 }
 
-function get_etudiants() {
+function get_etudiants()
+{
     global $conn;
     $result = $conn->query("SELECT * FROM etudiants ORDER BY date_creation DESC");
     $etudiants = [];
@@ -46,7 +51,8 @@ function get_etudiants() {
     return $etudiants;
 }
 
-function get_etudiants_by_id($id) {
+function get_etudiants_by_id($id)
+{
     global $conn;
     $stmt = $conn->prepare("SELECT * FROM etudiants WHERE id = ?");
     $stmt->bind_param("i", $id);
@@ -55,7 +61,8 @@ function get_etudiants_by_id($id) {
     return $result->fetch_assoc();
 }
 
-function get_etudiant_by_user_id($userId) {
+function get_etudiant_by_user_id($userId)
+{
     global $conn;
     $stmt = $conn->prepare("SELECT * FROM etudiants WHERE user_id = ?");
     $stmt->bind_param("i", $userId);
@@ -64,27 +71,36 @@ function get_etudiant_by_user_id($userId) {
     return $result->fetch_assoc();
 }
 
-function update_student($id, $nom, $prenom, $age, $classe) {
+function update_student($id, $nom, $prenom, $age, $classe)
+{
     global $conn;
     $stmt = $conn->prepare("UPDATE etudiants SET nom = ?, prenom = ?, age = ?, classe = ? WHERE id = ?");
     $stmt->bind_param("ssisi", $nom, $prenom, $age, $classe, $id);
     return $stmt->execute();
 }
 
-function update_student_for_user($id, $userId, $nom, $prenom, $age, $classe) {
+function update_student_for_user($id, $userId, $nom, $prenom, $age, $classe)
+{
     global $conn;
     $stmt = $conn->prepare("UPDATE etudiants SET nom = ?, prenom = ?, age = ?, classe = ? WHERE id = ? AND user_id = ?");
     $stmt->bind_param("ssisii", $nom, $prenom, $age, $classe, $id, $userId);
     return $stmt->execute();
 }
 
-function display_students() {
-    $etudiants = get_etudiants();
+function display_students()
+{
+    $currentUserId = getCurrentUserId();
+    if (isUserAdmin()) {
+        $etudiants = get_etudiants();
+    } else {
+        // L'utilisateur ne voit que ses propres données
+        $etudiant = get_etudiant_by_user_id($currentUserId);
+        $etudiants = $etudiant ? [$etudiant] : [];
+    }
     if (empty($etudiants)) {
         echo "Aucun étudiant enregistré";
         return;
     }
-    $currentUserId = getCurrentUserId();
     foreach ($etudiants as $etudiant) {
         $id = (int) $etudiant['id'];
         $nom = $etudiant['nom'];
@@ -115,7 +131,8 @@ function display_students() {
     return $etudiants;
 }
 
-function calculate_average_age() {
+function calculate_average_age()
+{
     global $conn;
     $result = $conn->query("SELECT AVG(age) as age_moyen FROM etudiants");
     if ($result && $row = $result->fetch_assoc()) {
@@ -124,7 +141,8 @@ function calculate_average_age() {
     return 0;
 }
 
-function count_by_class() {
+function count_by_class()
+{
     global $conn;
     $result = $conn->query("SELECT classe, COUNT(*) as nombre FROM etudiants GROUP BY classe");
     $repartition = [];
@@ -136,7 +154,8 @@ function count_by_class() {
     return $repartition;
 }
 
-function count_students() {
+function count_students()
+{
     global $conn;
     $result = $conn->query("SELECT COUNT(*) as total FROM etudiants");
     if ($result && $row = $result->fetch_assoc()) {
@@ -145,14 +164,16 @@ function count_students() {
     return 0;
 }
 
-function delete_student($id) {
+function delete_student($id)
+{
     global $conn;
     $stmt = $conn->prepare("DELETE FROM etudiants WHERE id = ?");
     $stmt->bind_param("i", $id);
     return $stmt->execute();
 }
 
-function check_duplicates($nom, $prenom, $age, $excludeId = null) { // excludeId pour l'edition, pour ne pas considerer le meme etudiant comme duplicate
+function check_duplicates($nom, $prenom, $age, $excludeId = null)
+{ // excludeId pour l'edition, pour ne pas considerer le meme etudiant comme duplicate
     global $conn;
     if ($excludeId !== null) {
         $stmt = $conn->prepare("SELECT id FROM etudiants WHERE nom = ? AND prenom = ? AND age = ? AND id <> ?");
@@ -166,7 +187,8 @@ function check_duplicates($nom, $prenom, $age, $excludeId = null) { // excludeId
     return $result->num_rows > 0;
 }
 
-function validerFormulaire($nom, $prenom, $age, $classe, $excludeId = null) {
+function validerFormulaire($nom, $prenom, $age, $classe, $excludeId = null)
+{
     $erreurs = [];
     if (empty($nom) || !preg_match("/^[a-zA-Z'-]+$/", $nom)) {
         $erreurs[] = "Le nom est invalide.";
@@ -188,7 +210,8 @@ function validerFormulaire($nom, $prenom, $age, $classe, $excludeId = null) {
 }
 
 //logout de la session
-function logout() {
+function logout()
+{
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -196,4 +219,51 @@ function logout() {
     session_destroy();
     header("Location: auth.php");
     exit;
+}
+
+// Regroupe les statistiques des étudiants
+function get_students_stats()
+{
+    return [
+        'total' => count_students(),
+        'moyenne_age' => calculate_average_age(),
+        'par_classe' => count_by_class()
+    ];
+}
+
+// Authentification utilisateur
+function handle_auth()
+{
+    global $conn, $error;
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        if (empty($_POST["email"]) || empty($_POST["password"])) {
+            $error = "Veuillez remplir tous les champs.";
+        } else {
+            $email = trim($_POST["email"]);
+            $user_password = trim($_POST["password"]);
+            $stmt = $conn->prepare("SELECT * FROM contact WHERE email = ?");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                $user = $result->fetch_assoc();
+                if (password_verify($user_password, $user['password'])) {
+                    $_SESSION['admin'] = [
+                        'id' => $user['id'],
+                        'email' => $user['email'],
+                        'isAdmin' => isset($user['isAdmin']) ? (int) $user['isAdmin'] : 0
+                    ];
+                    header("Location: index.php");
+                    exit;
+                } else {
+                    $error = "Mot de passe incorrect.";
+                }
+            } else {
+                $error = "Aucun compte trouvé avec cet email.";
+            }
+        }
+    }
 }
