@@ -3,6 +3,8 @@
 require_once __DIR__ . '/../../db.php';
 require_once __DIR__ . '/../../utils.php';
 
+safe_guarded_route(); 
+
 //fonction pour ajouter
 function handle_add_equipment($mysqli)
 {

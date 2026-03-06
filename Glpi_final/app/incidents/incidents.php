@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../utils.php';
 require_once __DIR__ . '/../equipement/equipment.php';
 
+safe_guarded_route(); 
 function handle_add_incident($mysqli)
 {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter') {
@@ -22,10 +23,14 @@ function handle_add_incident($mysqli)
 
         $id_technicien_final = $id_technicien_post;
         if (!$id_technicien_final) {
-            $techs = get_techniciens($mysqli);
-            if (!empty($techs)) {
-                $random_tech = $techs[array_rand($techs)];
-                $id_technicien_final = (int) $random_tech['id'];
+            if ($user_info['role'] === 'administrateur') {
+                $id_technicien_final = $id_utilisateur;
+            } else {
+                $techs = get_techniciens($mysqli);
+                if (!empty($techs)) {
+                    $random_tech = $techs[array_rand($techs)];
+                    $id_technicien_final = (int) $random_tech['id'];
+                }
             }
         }
 
@@ -45,11 +50,14 @@ function handle_add_incident($mysqli)
             if (isset($_FILES['piece_jointe']) && $_FILES['piece_jointe']['error'] === UPLOAD_ERR_OK) {
                 $file = $_FILES['piece_jointe'];
 
+                //verification que le dossier existe sinon creation
+
                 $upload_dir = __DIR__ . '/../../uploads/incidents/';
                 if (!is_dir($upload_dir)) {
                     mkdir($upload_dir, 0777, true);
                 }
 
+                //Rendre le fichier unique pour eciter les conflits + verif de taille et extentions
                 $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 $allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf'];
 
@@ -58,6 +66,8 @@ function handle_add_incident($mysqli)
                     $new_file_name = uniqid('incident_' . $id_incident . '_', true) . '.' . $file_extension;
                     $upload_path = $upload_dir . $new_file_name;
                     $db_path = 'uploads/incidents/' . $new_file_name;
+
+                    //file move et insertion du chemin en base 
 
                     if (move_uploaded_file($file['tmp_name'], $upload_path)) {
                         $nom_original = $file['name'];

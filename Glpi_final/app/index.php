@@ -77,6 +77,9 @@ if ($user_info['role'] === 'administrateur') {
                         <i class="fa-solid fa-user me-1"></i>
                         <?php echo htmlspecialchars($user_info['email'] ?? 'Utilisateur'); ?>
                     </span>
+                    <a href="settings/index.php" class="btn btn-outline-light btn-sm me-2" title="Paramètres">
+                        <i class="fa-solid fa-gear"></i>
+                    </a>
                     <a href="../login/logout.php" class="btn btn-outline-light btn-sm">Déconnexion</a>
                 </div>
             </div>

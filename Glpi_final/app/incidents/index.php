@@ -70,6 +70,9 @@ if (isset($_GET['edit'])) {
                         <i class="fa-solid fa-user me-1"></i>
                         <?php echo htmlspecialchars($user_info['email'] ?? 'Utilisateur'); ?>
                     </span>
+                    <a href="../settings/index.php" class="btn btn-outline-light btn-sm me-2" title="Paramètres">
+                        <i class="fa-solid fa-gear"></i>
+                    </a>
                     <a href="../../login/logout.php" class="btn btn-outline-light btn-sm">Déconnexion</a>
                 </div>
             </div>
@@ -180,14 +183,23 @@ if (isset($_GET['edit'])) {
                                         <td class="px-4 text-muted small">
                                             <?= date('d/m/Y H:i', strtotime($inc['date'])) ?>
                                         </td>
+                                        <!--Pieces jointes-->
                                         <td class="px-4">
                                             <?php if (!empty($inc['pieces_jointes'])): ?>
                                                 <?php foreach ($inc['pieces_jointes'] as $pj): ?>
-                                                    <a href="../../<?= htmlspecialchars($pj['chemin_fichier']) ?>" target="_blank"
-                                                        class="badge bg-secondary text-decoration-none me-1"
-                                                        title="<?= htmlspecialchars($pj['nom_fichier']) ?>">
-                                                        <i class="fa-solid fa-paperclip"></i>
-                                                    </a>
+                                                    <?php
+                                                    $ext = strtolower(pathinfo($pj['chemin_fichier'], PATHINFO_EXTENSION));
+                                                    //on affiche que les images sinon pdf ect icone download
+                                                    if (in_array($ext, ['jpg', 'jpeg', 'png'])): ?>
+                                                        <img src="../../<?= htmlspecialchars($pj['chemin_fichier']) ?>" alt="<?= htmlspecialchars($pj['nom_fichier']) ?>" style="max-width: 80px; max-height: 80px; object-fit: cover; border-radius: 4px; margin-right: 5px;" />
+                                                    <?php else: ?>l
+                                                        
+                                                        <a href="../../<?= htmlspecialchars($pj['chemin_fichier']) ?>" target="_blank"
+                                                            class="badge bg-secondary text-decoration-none me-1"
+                                                            title="<?= htmlspecialchars($pj['nom_fichier']) ?>">
+                                                            <i class="fa-solid fa-paperclip"></i>
+                                                        </a>
+                                                    <?php endif; ?>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>

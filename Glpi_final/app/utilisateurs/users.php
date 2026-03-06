@@ -3,6 +3,8 @@
 require_once '../../db.php';
 require_once '../../utils.php';
 
+safe_guarded_route(); 
+
 // Fonction pour ajouter un utilisateur
 function handle_add_user($mysqli)
 {
