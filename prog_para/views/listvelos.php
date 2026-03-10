@@ -1,6 +1,6 @@
 <?php
 
-require_once '../models/functions.php';
+require_once 'models/functions.php';
 $velos = display_velo();
 
 ?>

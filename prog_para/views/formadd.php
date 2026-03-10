@@ -8,7 +8,7 @@
 
 <body>
     <h1>Ajouter un vélo</h1>
-    <form action="../controller/add_velo.php" method="POST">
+    <form action="controllers/addvelo.php" method="POST">
         <label for="marque">Marque:</label><br>
         <input type="text" id="marque" name="marque" required><br><br>
 
